@@ -28,15 +28,12 @@ def train_dataloader(path, batch_size=64, num_workers=0, use_transform=True):
 
 
 def test_dataloader(path, batch_size=1, num_workers=0):
-    image_dir = os.path.join(path, 'valid')
     dataloader = DataLoader(
-        DeblurDataset(image_dir, is_test=True),
+        DeblurDataset(path, is_test=True),
         batch_size=batch_size,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True
+        num_workers=num_workers
     )
-
     return dataloader
 
 
@@ -59,9 +56,9 @@ def valid_dataloader(path, batch_size=1, num_workers=0):
 
 class DeblurDataset(Dataset):
     def __init__(self, image_dir, transform=None, is_test=False):
-        self.image_dir = image_dir
-        self.image_list = os.listdir(os.path.join(image_dir, 'input/'))
-        self._check_image(self.image_list)
+        self.lq_dir = os.path.join(image_dir, 'Lq')
+        self.gt_dir = os.path.join(image_dir, 'Gt')
+        self.image_list = os.listdir(self.lq_dir)  # 只列 Lq 文件
         self.image_list.sort()
         self.transform = transform
         self.is_test = is_test
@@ -70,17 +67,21 @@ class DeblurDataset(Dataset):
         return len(self.image_list)
 
     def __getitem__(self, idx):
-        image = Image.open(os.path.join(self.image_dir, 'input', self.image_list[idx]))
-        label = Image.open(os.path.join(self.image_dir, 'target', self.image_list[idx]))
+        image_path = os.path.join(self.lq_dir, self.image_list[idx])
+        label_path = os.path.join(self.gt_dir, self.image_list[idx])
+        
+        image = Image.open(image_path)
+        label = Image.open(label_path)
 
         if self.transform:
             image, label = self.transform(image, label)
         else:
             image = F.to_tensor(image)
             label = F.to_tensor(label)
+
         if self.is_test:
-            name = self.image_list[idx]
-            return image, label, name
+            return image, label, self.image_list[idx]
+
         return image, label
 
     @staticmethod

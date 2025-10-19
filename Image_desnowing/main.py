@@ -4,7 +4,7 @@ import argparse
 from torch.backends import cudnn
 from models.ConvIR import build_net
 from train import _train
-from eval import _eval
+from Image_deraining.eval import _eval
 
 def main(args):
     cudnn.benchmark = True
